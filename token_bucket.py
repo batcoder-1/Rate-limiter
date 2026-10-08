@@ -7,6 +7,8 @@ class Token_Bucket(BaseClass):
     bucket_capacity:int
     refill_rate:float
     def __init__(self,bucket_capacity,refill_rate,redis_client,nameSpace):
+        if bucket_capacity <= 0:
+            raise ValueError("Bucket capacity cannot be zero")
         super().__init__(redis_client,nameSpace)
         self.bucket_capacity=bucket_capacity
         self.refill_rate=refill_rate
