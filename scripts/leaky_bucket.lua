@@ -14,7 +14,7 @@ else
     local current_capacity=tonumber(redis.call("HGET",user,"current_capacity"))
     local last_timestamp=tonumber(redis.call("HGET",user,"last_timestamp"))
     current_capacity=math.max(0,current_capacity-(current_timestamp-last_timestamp)*leakage_rate)
-    if current_capacity < bucket_capacity then
+    if current_capacity +1  <= bucket_capacity then -- calculations are in decimals hence we cannot check current_capacity<bucket_capacity
         redis.call("HSET",user,"current_capacity",current_capacity+1,"last_timestamp",current_timestamp)
         redis.call("EXPIRE",user,ttl_time)
         return true
