@@ -63,8 +63,9 @@ def test_leaky_bucket_allow_upto_capacity():
     for request in range(1,11):
         assert limiter.isAllow("user_1") is True,f"Request {request} should be allowed"
     
+    assert limiter.isAllow("user_1") is False ,"Request 11 should be rejected"
     time.sleep(1)
-    assert limiter.isAllow("user_1") is True, "Request 11 should be allowed"
+    assert limiter.isAllow("user_1") is True, "Request 12 should be allowed"
     
 def test_leaky_bucket_leakage():
     r.delete("test_leaky_bucket:user_1")

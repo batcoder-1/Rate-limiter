@@ -36,14 +36,14 @@ def test_sliding_window_counter_different_namespace_and_user():
                 redis_client=r,
                 nameSpace="test_slwc1",
                 rate_limit=1,
-                window_size=1
+                window_size=60
             )
     limiter2=RateLimiter(
                 "sliding window counter",
                 redis_client=r,
                 nameSpace="test_slwc2",
                 rate_limit=1,
-                window_size=1
+                window_size=60
             )
     
     assert limiter1.isAllow("user_1") is True , "Request 1 should be accepted"
@@ -58,13 +58,13 @@ def test_sliding_window_counter_window_size_and_rate_limit():
                 redis_client=r,
                 nameSpace="test_slwc",
                 rate_limit=10,
-                window_size=1
+                window_size=5
             )
     for request in range(1,11):
         assert limiter.isAllow("user_1") is True , f"Request {request} should be accepted"
     
     assert limiter.isAllow("user_1") is False , "Request 11 should be rejected"
-    time.sleep(1.2)
+    time.sleep(5.2)
     assert limiter.isAllow("user_1") is True , "Request 12 should be accepted"
     
 from concurrent.futures import ThreadPoolExecutor
@@ -77,7 +77,7 @@ def test_sliding_window_counter_concurrent_request():
                 redis_client=r,
                 nameSpace="test_slwc",
                 rate_limit=10,
-                window_size=1
+                window_size=60
             )
     barrier=Barrier(15)
     
