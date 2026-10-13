@@ -14,4 +14,4 @@ def RateLimiter(algorithm,**kwargs):
     elif(algo=="token bucket"):
         return  Token_Bucket(**kwargs)
     else:
-        raise ValueError(f"Unknow algorithm {algorithm}")
+        raise ValueError(f"Unknow algorithm")

@@ -1,66 +1,33 @@
-# Rate Limiter
+# redis-ratekit
 
-A Redis-backed, distributed rate limiter for Python implementing four classic algorithms. All rate-limiting logic runs inside **atomic Lua scripts** on the Redis server, making every check-and-update a single round-trip with no race conditions — even under high concurrency.
+[![PyPI version](https://img.shields.io/pypi/v/redis-ratekit.svg)](https://pypi.org/project/redis-ratekit/)
+[![Python](https://img.shields.io/pypi/pyversions/redis-ratekit.svg)](https://pypi.org/project/redis-ratekit/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/batcoder-1/Rate-limiter/blob/main/LICENSE)
 
----
+Atomic, Redis-backed rate limiting for Python.
 
-## Features
-
-- **Four algorithms** — Token Bucket, Leaky Bucket, Sliding Window Log, Sliding Window Counter
-- **Atomic operations** — each algorithm is a single Redis `EVAL` (Lua script), so concurrent requests never race
-- **Per-user limiting** — keys are namespaced as `<namespace>:<user_id>`
-- **Automatic key expiry** — TTLs are set so stale keys clean themselves up
-- **Factory API** — one-line instantiation via a human-readable algorithm name
-- **Input validation** — constructors reject invalid parameters (zero / negative capacity, rate, window size, etc.) with a `ValueError`
+Each algorithm runs as a single atomic Lua script on the Redis server. Tested with: single Redis server, Redis 8.1.0, Python 3.14.
 
 ---
 
-## Project Structure
+## ✨ Highlights
 
-```
-Rate-Limiter/
-├── base.py                          # Abstract base class (BaseClass)
-├── factory.py                       # RateLimiter() factory function
-├── token_bucket.py                  # Token Bucket implementation
-├── leaky_bucket.py                  # Leaky Bucket implementation
-├── sliding_window_log.py            # Sliding Window Log implementation
-├── sliding_window_counter.py        # Sliding Window Counter implementation
-├── __init__.py                      # Package marker
-├── conftest.py                      # Pytest path configuration
-├── requirements.txt                 # Python dependencies
-├── scripts/
-│   ├── token_bucket.lua             # Lua script – Token Bucket
-│   ├── leaky_bucket.lua             # Lua script – Leaky Bucket
-│   ├── sliding_window_log.lua       # Lua script – Sliding Window Log
-│   └── sliding_window_counter.lua   # Lua script – Sliding Window Counter
-└── tests/
-    ├── token_bucket_tests.py        # Token Bucket test suite
-    ├── leaky_bucket_tests.py        # Leaky Bucket test suite
-    ├── sliding_window_log_tests.py  # Sliding Window Log test suite
-    └── sliding_window_counter_tests.py # Sliding Window Counter test suite
-```
-
----
-
-## Prerequisites
-
-- **Python 3.8+**
-- **Redis server** running locally (default `localhost:6379`)
-- **`redis-py`** ≥ 4.0.0
+- **Four algorithms** in one package — pick the right trade-off for your use case
+- **Single atomic Lua scripts** — each algorithm runs as one Redis script per check
+- **Per-user / per-resource keys** — namespaced as `<namespace>:<user_id>`
+- **Automatic key expiry** — stale keys clean themselves up via TTL
+- **Factory API** — one-liner instantiation by algorithm name
+- **Input validation** — bad parameters raise `ValueError` immediately
 
 ---
 
 ## Installation
 
 ```bash
-# Clone the repository
-git clone <repo-url> && cd Rate-Limiter
-
-# Create a virtual environment and install dependencies
-python -m venv rocks
-source rocks/bin/activate
-pip install -r requirements.txt
+pip install redis-ratekit
 ```
+
+> **Requires** Python ≥ 3.14 and a running Redis server.
 
 ---
 
@@ -68,11 +35,11 @@ pip install -r requirements.txt
 
 ```python
 import redis
-from factory import RateLimiter
+from ratekit import RateLimiter
 
 r = redis.Redis(host="localhost", port=6379)
 
-# Pick an algorithm by name
+# Create a limiter — just pass the algorithm name
 limiter = RateLimiter(
     "token bucket",
     redis_client=r,
@@ -82,18 +49,20 @@ limiter = RateLimiter(
 )
 
 if limiter.isAllow("user_42"):
-    print("Request allowed")
+    print("✅ Request allowed")
 else:
-    print("Rate limited")
+    print("🚫 Rate limited")
 ```
+
+Note: `nameSpace` and `isAllow` are camelCase by design.
 
 ---
 
 ## Algorithms
 
-### 1. Token Bucket
+### Token Bucket
 
-Maintains a bucket of tokens that refills at a constant rate. Each request consumes one token; when the bucket is empty the request is denied. Allows short bursts up to `bucket_capacity`.
+Maintains a bucket of tokens that refills at a constant rate. Each request consumes one token; when the bucket is empty the request is denied. **Allows short bursts** up to `bucket_capacity`.
 
 ```python
 limiter = RateLimiter(
@@ -110,9 +79,9 @@ limiter = RateLimiter(
 | `bucket_capacity` | Maximum number of tokens the bucket can hold |
 | `refill_rate` | Tokens added per second |
 
-### 2. Leaky Bucket
+### Leaky Bucket
 
-Models a bucket that leaks at a fixed rate. Incoming requests fill the bucket; if it overflows the request is rejected. Produces a smoothed, constant output rate.
+Models a bucket that leaks at a fixed rate. Incoming requests fill the bucket; if it overflows the request is rejected. Produces a **smoothed, constant output rate**.
 
 ```python
 limiter = RateLimiter(
@@ -129,9 +98,9 @@ limiter = RateLimiter(
 | `bucket_capacity` | Maximum number of pending requests |
 | `leakage_rate` | Requests drained per second |
 
-### 3. Sliding Window Log
+### Sliding Window Log
 
-Keeps a sorted-set log of every request timestamp within the window. Before admitting a request, expired entries are pruned and the remaining count is compared to the limit. Most accurate, but uses more memory.
+Keeps a sorted-set log of every request timestamp within the window. Before admitting a request, expired entries are pruned and the remaining count is compared to the limit. **Most accurate**, but uses more memory.
 
 ```python
 limiter = RateLimiter(
@@ -148,9 +117,9 @@ limiter = RateLimiter(
 | `rate_limit` | Maximum allowed requests in the window |
 | `window_size` | Window duration in seconds |
 
-### 4. Sliding Window Counter
+### Sliding Window Counter
 
-Approximates a sliding window by weighting the previous window's count against the current one. Uses constant memory (a single hash per user) while still smoothing out boundary spikes.
+Approximates a sliding window by weighting the previous window's count against the current one. Uses **constant memory** (a single hash per user) while still smoothing out boundary spikes.
 
 ```python
 limiter = RateLimiter(
@@ -176,57 +145,61 @@ limiter = RateLimiter(
 | **Burst tolerance** | ✅ Yes (up to capacity) | ❌ No (smoothed output) | ❌ No (hard cap) | ⚠️ Approximate |
 | **Accuracy** | Exact | Exact | Exact | Approximate |
 | **Memory per user** | O(1) — hash | O(1) — hash | O(n) — sorted set | O(1) — hash |
-| **Redis data structure** | Hash | Hash | Sorted Set + Counter | Hash |
+| **Redis data type** | Hash | Hash | Sorted Set + seq counter | Hash |
 | **Best for** | APIs allowing bursts | Smoothing traffic | Strict per-window caps | High-throughput, low-memory |
 
 ---
 
-## Running the Tests
+## How It Works
 
-The project uses **pytest** with dedicated test files for each algorithm. Tests cover:
+```
+┌────────────┐         ┌──────────────────────┐         ┌────────────┐
+│  Your App  │──call──▶│  Python wrapper       │──EVAL──▶│   Redis    │
+│            │         │  (Token_Bucket, …)    │         │  Lua script│
+│            │◀─bool───│                       │◀─0/1────│  (atomic)  │
+└────────────┘         └──────────────────────┘         └────────────┘
+```
+
+1. The Python class loads a Lua script from the bundled `scripts/` directory and registers it with Redis via `register_script()`.
+2. The current timestamp is generated inside each Lua script with `redis.call("TIME")` on the Redis server, so the decision is based on the Redis clock rather than a Python-side timestamp.
+3. On every `isAllow(user_id)` call the script executes atomically on the Redis server.
+4. The script returns `1` (allowed) or `0` (denied), cast to a Python `bool`.
+
+Redis connection errors propagate from `redis-py` (for example, `redis.exceptions.ConnectionError`). This library does not catch or swallow them; the calling application decides whether to fail open or closed.
+
+---
+
+## Development
+
+Contributors can set up a local checkout like this:
+
+```bash
+git clone https://github.com/batcoder-1/Rate-limiter.git
+cd Rate-limiter
+python -m venv .venv && source .venv/bin/activate
+pip install -e . pytest
+pytest tests/ -v
+```
+
+Tests require a Redis server running on `localhost:6379`.
+
+Tests cover:
 
 - ✅ Basic allow / deny behaviour
 - ✅ Refill / leakage after a sleep
 - ✅ Per-namespace and per-user isolation
 - ✅ Input validation (`ValueError` on bad parameters)
-- ✅ Concurrent burst requests via `ThreadPoolExecutor` + `Barrier` to verify atomicity
+- ✅ Concurrent burst requests via `ThreadPoolExecutor` + `Barrier`
 - ✅ Sliding window counter weighting logic
-
-```bash
-# Make sure Redis is running, then:
-pytest tests/ -v
-```
-
-Example output:
-
-```
-tests/token_bucket_tests.py::test_token_bucket_allows_up_to_capacity_and_refill    PASSED
-tests/token_bucket_tests.py::test_token_bucket_different_namspace_and_user          PASSED
-tests/token_bucket_tests.py::test_token_bucket_refill                               PASSED
-tests/token_bucket_tests.py::test_token_bucket_invalid_bucket_capacity              PASSED
-tests/token_bucket_tests.py::test_token_bucket_invalid_refill_rate                  PASSED
-tests/token_bucket_tests.py::test_token_bucket_concurrent_requests                  PASSED
-...
-```
 
 ---
 
-## How It Works — Architecture
+## Contributing
 
-```
-┌────────────┐         ┌─────────────────────┐         ┌────────────┐
-│  Your App  │──call──▶│  Python Wrapper      │──EVAL──▶│   Redis    │
-│            │         │  (token_bucket.py …) │         │  Lua Script│
-│            │◀─bool───│                      │◀─0/1────│  (atomic)  │
-└────────────┘         └─────────────────────┘         └────────────┘
-```
-
-1. The **Python class** loads the corresponding Lua script from `scripts/` and registers it with Redis via `register_script()`.
-2. On every `isAllow(user_id)` call, the script is executed atomically on the Redis server — no multi-step transactions or locks needed.
-3. The script returns `true` (allowed) or `false` (denied), which the Python side casts to a `bool`.
+Contributions are welcome! Please open an issue or submit a pull request on [GitHub](https://github.com/batcoder-1/Rate-limiter).
 
 ---
 
 ## License
 
-This project is provided as-is for educational and practical use.
+Distributed under the **MIT License**. See [`LICENSE`](https://github.com/batcoder-1/Rate-limiter/blob/main/LICENSE) for details.

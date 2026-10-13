@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "redis-ratekit"
-version = "0.1.0"
+version = "0.1.0.dev2"
 description = "Atomic, Redis-backed rate limiting for Python: token bucket, leaky bucket, and sliding window algorithms in Lua."
 readme = "README.md"
 license = "MIT"
