@@ -11,6 +11,7 @@ A Redis-backed, distributed rate limiter for Python implementing four classic al
 - **Per-user limiting** — keys are namespaced as `<namespace>:<user_id>`
 - **Automatic key expiry** — TTLs are set so stale keys clean themselves up
 - **Factory API** — one-line instantiation via a human-readable algorithm name
+- **Input validation** — constructors reject invalid parameters (zero / negative capacity, rate, window size, etc.) with a `ValueError`
 
 ---
 
@@ -24,12 +25,19 @@ Rate-Limiter/
 ├── leaky_bucket.py                  # Leaky Bucket implementation
 ├── sliding_window_log.py            # Sliding Window Log implementation
 ├── sliding_window_counter.py        # Sliding Window Counter implementation
+├── __init__.py                      # Package marker
+├── conftest.py                      # Pytest path configuration
+├── requirements.txt                 # Python dependencies
 ├── scripts/
 │   ├── token_bucket.lua             # Lua script – Token Bucket
 │   ├── leaky_bucket.lua             # Lua script – Leaky Bucket
 │   ├── sliding_window_log.lua       # Lua script – Sliding Window Log
 │   └── sliding_window_counter.lua   # Lua script – Sliding Window Counter
-└── test.py                          # Concurrent burst tests
+└── tests/
+    ├── token_bucket_tests.py        # Token Bucket test suite
+    ├── leaky_bucket_tests.py        # Leaky Bucket test suite
+    ├── sliding_window_log_tests.py  # Sliding Window Log test suite
+    └── sliding_window_counter_tests.py # Sliding Window Counter test suite
 ```
 
 ---
@@ -38,7 +46,21 @@ Rate-Limiter/
 
 - **Python 3.8+**
 - **Redis server** running locally (default `localhost:6379`)
-- **`redis-py`** — `pip install redis`
+- **`redis-py`** ≥ 4.0.0
+
+---
+
+## Installation
+
+```bash
+# Clone the repository
+git clone <repo-url> && cd Rate-Limiter
+
+# Create a virtual environment and install dependencies
+python -m venv rocks
+source rocks/bin/activate
+pip install -r requirements.txt
+```
 
 ---
 
@@ -161,21 +183,30 @@ limiter = RateLimiter(
 
 ## Running the Tests
 
-The test file fires concurrent burst requests using `ThreadPoolExecutor` to verify that the Lua scripts are race-condition free:
+The project uses **pytest** with dedicated test files for each algorithm. Tests cover:
+
+- ✅ Basic allow / deny behaviour
+- ✅ Refill / leakage after a sleep
+- ✅ Per-namespace and per-user isolation
+- ✅ Input validation (`ValueError` on bad parameters)
+- ✅ Concurrent burst requests via `ThreadPoolExecutor` + `Barrier` to verify atomicity
+- ✅ Sliding window counter weighting logic
 
 ```bash
 # Make sure Redis is running, then:
-python test.py
+pytest tests/ -v
 ```
 
-A passing run prints:
+Example output:
 
 ```
-Total requests: 50
-Allowed: 10
-Denied: 40
-Expected allowed: exactly 10
-PASS: exactly rate_limit requests were allowed on a fresh window, no race condition.
+tests/token_bucket_tests.py::test_token_bucket_allows_up_to_capacity_and_refill    PASSED
+tests/token_bucket_tests.py::test_token_bucket_different_namspace_and_user          PASSED
+tests/token_bucket_tests.py::test_token_bucket_refill                               PASSED
+tests/token_bucket_tests.py::test_token_bucket_invalid_bucket_capacity              PASSED
+tests/token_bucket_tests.py::test_token_bucket_invalid_refill_rate                  PASSED
+tests/token_bucket_tests.py::test_token_bucket_concurrent_requests                  PASSED
+...
 ```
 
 ---
