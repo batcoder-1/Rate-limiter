@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "redis-ratekit"
+version = "0.1.0"
+description = "Atomic, Redis-backed rate limiting for Python: token bucket, leaky bucket, and sliding window algorithms in Lua."
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.14"
+authors = [
+    { name = "Naman Dadhich" },
+]
+keywords = [
+    "rate-limiter",
+    "redis",
+    "lua",
+    "token-bucket",
+    "leaky-bucket",
+    "sliding-window",
+]
+dependencies = [
+    "redis>=8.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/batcoder-1/Rate-limiter"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ratekit = ["scripts/*.lua"]

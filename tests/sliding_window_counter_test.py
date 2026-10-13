@@ -1,4 +1,4 @@
-from factory import RateLimiter
+from ratekit import RateLimiter
 import pytest
 import time
 import redis
