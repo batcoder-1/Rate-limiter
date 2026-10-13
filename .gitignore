@@ -10,3 +10,6 @@ env/
 ENV/
 rocks/
 test.py
+dist/
+build/
+*.egg-info/

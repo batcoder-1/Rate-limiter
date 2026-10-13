@@ -1,4 +1,4 @@
-from base import BaseClass
+from .base import BaseClass
 from pathlib import Path
 base_dir=Path(__file__).parent
 script=(base_dir/"scripts"/"leaky_bucket.lua").read_text()

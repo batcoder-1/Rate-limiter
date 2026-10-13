@@ -1,4 +1,4 @@
-from factory import RateLimiter
+from ratekit import RateLimiter
 import redis
 import time
 r = redis.Redis(host="localhost", port=6379)
