@@ -15,18 +15,28 @@ authors = [
 ]
 keywords = [
     "rate-limiter",
+    "rate-limiting",
     "redis",
     "lua",
     "token-bucket",
     "leaky-bucket",
     "sliding-window",
 ]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries",
+]
 dependencies = [
     "redis>=8.0.0",
 ]
 
 [project.urls]
-Homepage = "https://github.com/batcoder-1/Rate-limiter"
+Homepage = "https://github.com/batcoder-1/Redis-Ratekit"
+Source = "https://github.com/batcoder-1/Redis-Ratekit"
+Issues = "https://github.com/batcoder-1/Redis-Ratekit/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
